@@ -117,6 +117,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             }
         };
         double mHighTemperature;
+        double mLowTemperature;
         float mTimeXOffset;
         float mTimeYOffset;
         float mTemperatureXOffset;
@@ -279,7 +280,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             canvas.drawText(text, mTimeXOffset, mTimeYOffset, mTimeTextPaint);
 
             // Draw max and min temperature
-            canvas.drawText("H " + mHighTemperature + "º", mTemperatureXOffset, mTemperatureYOffset, mTemperatureTextPaint);
+            String tempText = String.format("H %.0fº  L %.0fº", mHighTemperature, mLowTemperature);
+            canvas.drawText(tempText, mTemperatureXOffset, mTemperatureYOffset, mTemperatureTextPaint);
         }
 
         /**
@@ -356,8 +358,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
                 if (path.equals("/sunshine")) {
                     DataMap dataMap = DataMapItem.fromDataItem(dataItem).getDataMap();
-                    mHighTemperature = dataMap.getDouble("high");
-                    Log.d(TAG, "high temperature: " + mHighTemperature);
+                    mHighTemperature = dataMap.getDouble("high_temperature");
+                    mLowTemperature = dataMap.getDouble("low_temperature");
+                    Log.d(TAG, "high temperature: " + mHighTemperature + ", low temperature: " + mLowTemperature);
                 }
             }
         }

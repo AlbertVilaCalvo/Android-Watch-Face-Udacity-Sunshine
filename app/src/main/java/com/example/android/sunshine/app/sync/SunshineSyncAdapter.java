@@ -337,7 +337,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                 // SEND DATA TO WAEAR WATHC FACE
                 // Only send the 1st item
                 if (i == 0) {
-                    sendDataToWatchFace(high);
+                    sendDataToWatchFace(high, low);
                 }
 
 
@@ -679,11 +679,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         mGoogleApiClient.connect();
     }
 
-    private void sendDataToWatchFace(double high) {
+    private void sendDataToWatchFace(double highTemperature, double lowTemperature) {
         Log.d(LOG_TAG, "sendDataToWatchFace()");
         PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sunshine").setUrgent();
 
-        putDataMapRequest.getDataMap().putDouble("high", high);
+        putDataMapRequest.getDataMap().putDouble("high_temperature", highTemperature);
+        putDataMapRequest.getDataMap().putDouble("low_temperature", lowTemperature);
         putDataMapRequest.getDataMap().putLong("timestamp", new Date().getTime());
 
         PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
