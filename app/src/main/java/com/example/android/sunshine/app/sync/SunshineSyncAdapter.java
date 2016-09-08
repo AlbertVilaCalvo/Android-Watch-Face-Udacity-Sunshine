@@ -19,6 +19,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -41,6 +42,7 @@ import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
@@ -51,6 +53,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -337,7 +340,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                 // SEND DATA TO WAEAR WATHC FACE
                 // Only send the 1st item
                 if (i == 0) {
-                    sendDataToWatchFace(high, low);
+                    sendDataToWatchFace(high, low, weatherId);
                 }
 
 
@@ -679,13 +682,20 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         mGoogleApiClient.connect();
     }
 
-    private void sendDataToWatchFace(double highTemperature, double lowTemperature) {
+    private void sendDataToWatchFace(double highTemperature, double lowTemperature, int weatherConditionId) {
         Log.d(LOG_TAG, "sendDataToWatchFace()");
         PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sunshine").setUrgent();
 
         putDataMapRequest.getDataMap().putDouble("high_temperature", highTemperature);
         putDataMapRequest.getDataMap().putDouble("low_temperature", lowTemperature);
         putDataMapRequest.getDataMap().putLong("timestamp", new Date().getTime());
+
+        int drawableResourceId = Utility.getIconResourceForWeatherCondition(weatherConditionId);
+        Bitmap bitmap = BitmapFactory.decodeResource(getContext().getResources(), drawableResourceId);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
+        Asset asset = Asset.createFromBytes(byteArrayOutputStream.toByteArray());
+        putDataMapRequest.getDataMap().putAsset("icon", asset);
 
         PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest)

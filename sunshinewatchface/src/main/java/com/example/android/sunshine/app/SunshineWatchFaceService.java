@@ -21,11 +21,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -40,6 +43,7 @@ import android.view.WindowInsets;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
@@ -48,6 +52,7 @@ import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -118,10 +123,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         };
         double mHighTemperature;
         double mLowTemperature;
+        Bitmap mIconBitmap;
         float mTimeXOffset;
         float mTimeYOffset;
         float mTemperatureXOffset;
         float mTemperatureYOffset;
+        float mIconXOffset;
+        float mIconYOffset;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -141,6 +149,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             Resources resources = SunshineWatchFaceService.this.getResources();
             mTimeYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mTemperatureYOffset = resources.getDimension(R.dimen.temperature_y_offset);
+            mIconXOffset = resources.getDimension(R.dimen.icon_x_offset);
+            mIconYOffset = resources.getDimension(R.dimen.icon_y_offset);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
@@ -282,6 +292,11 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             // Draw max and min temperature
             String tempText = String.format("H %.0fº  L %.0fº", mHighTemperature, mLowTemperature);
             canvas.drawText(tempText, mTemperatureXOffset, mTemperatureYOffset, mTemperatureTextPaint);
+
+            // Icon
+            if (mIconBitmap != null && !isInAmbientMode()) {
+                canvas.drawBitmap(mIconBitmap, mIconXOffset, mIconYOffset , null);
+            }
         }
 
         /**
@@ -358,9 +373,62 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
                 if (path.equals("/sunshine")) {
                     DataMap dataMap = DataMapItem.fromDataItem(dataItem).getDataMap();
+
                     mHighTemperature = dataMap.getDouble("high_temperature");
                     mLowTemperature = dataMap.getDouble("low_temperature");
                     Log.d(TAG, "high temperature: " + mHighTemperature + ", low temperature: " + mLowTemperature);
+
+                    Asset iconAsset = dataMap.getAsset("icon");
+                    if (iconAsset != null) {
+                        new LoadBitmapAsyncTask().execute(iconAsset);
+                    }
+
+                    // Force UI update
+                    // invalidate();
+                }
+            }
+        }
+
+        /* From DataLayer sample
+         *
+         * Extracts {@link android.graphics.Bitmap} data from the
+         * {@link com.google.android.gms.wearable.Asset}
+         */
+        private class LoadBitmapAsyncTask extends AsyncTask<Asset, Void, Bitmap> {
+
+            @Override
+            protected Bitmap doInBackground(Asset... params) {
+                if (params.length > 0) {
+                    Asset asset = params[0];
+
+                    InputStream assetInputStream = Wearable.DataApi.getFdForAsset(
+                            mGoogleApiClient, asset).await().getInputStream();
+
+                    if (assetInputStream == null) {
+                        Log.w(TAG, "Requested an unknown Asset.");
+                        return null;
+                    }
+                    return BitmapFactory.decodeStream(assetInputStream);
+
+                } else {
+                    Log.e(TAG, "Asset must be non-null");
+                    return null;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(Bitmap bitmap) {
+                if (bitmap != null) {
+                    Log.d(TAG, "onPostExecute bitmap is NOT null");
+                    mIconBitmap = Bitmap.createScaledBitmap(
+                            bitmap,
+                            getResources().getDimensionPixelSize(R.dimen.icon_width_height),
+                            getResources().getDimensionPixelSize(R.dimen.icon_width_height),
+                            false
+                    );
+                    invalidate();
+                } else {
+                    Log.d(TAG, "onPostExecute bitmap is NULL");
                 }
             }
         }
