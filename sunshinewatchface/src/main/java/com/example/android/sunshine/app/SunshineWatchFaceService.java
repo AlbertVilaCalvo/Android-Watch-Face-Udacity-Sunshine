@@ -43,6 +43,9 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
@@ -103,6 +106,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
         Paint mTimeTextPaint;
+        Paint mTemperatureTextPaint;
         boolean mAmbient;
         Time mTime;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -112,8 +116,11 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 mTime.setToNow();
             }
         };
-        float mXOffset;
-        float mYOffset;
+        double mHighTemperature;
+        float mTimeXOffset;
+        float mTimeYOffset;
+        float mTemperatureXOffset;
+        float mTemperatureYOffset;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -131,13 +138,17 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                     .setShowSystemUiTime(false)
                     .build());
             Resources resources = SunshineWatchFaceService.this.getResources();
-            mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            mTimeYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            mTemperatureYOffset = resources.getDimension(R.dimen.temperature_y_offset);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
             mTimeTextPaint = new Paint();
             mTimeTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
+
+            mTemperatureTextPaint = new Paint();
+            mTemperatureTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mTime = new Time();
         }
@@ -208,12 +219,18 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             // Load resources that have alternate values for round watches.
             Resources resources = SunshineWatchFaceService.this.getResources();
             boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
+
+            mTimeXOffset = resources.getDimension(isRound
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
             float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
-
             mTimeTextPaint.setTextSize(textSize);
+
+            mTemperatureXOffset = resources.getDimension(isRound
+                    ? R.dimen.temperature_x_offset_round : R.dimen.temperature_x_offset);
+            textSize = resources.getDimension(isRound
+                    ? R.dimen.temperature_text_size_round : R.dimen.temperature_text_size);
+            mTemperatureTextPaint.setTextSize(textSize);
         }
 
         @Override
@@ -235,6 +252,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 mAmbient = inAmbientMode;
                 if (mLowBitAmbient) {
                     mTimeTextPaint.setAntiAlias(!inAmbientMode);
+                    mTemperatureTextPaint.setAntiAlias(!inAmbientMode);
                 }
                 invalidate();
             }
@@ -258,7 +276,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             String text = mAmbient
                     ? String.format("%d:%02d", mTime.hour, mTime.minute)
                     : String.format("%d:%02d:%02d", mTime.hour, mTime.minute, mTime.second);
-            canvas.drawText(text, mXOffset, mYOffset, mTimeTextPaint);
+            canvas.drawText(text, mTimeXOffset, mTimeYOffset, mTimeTextPaint);
+
+            // Draw max and min temperature
+            canvas.drawText("H " + mHighTemperature + "º", mTemperatureXOffset, mTemperatureYOffset, mTemperatureTextPaint);
         }
 
         /**
@@ -328,8 +349,16 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         public void onDataChanged(DataEventBuffer dataEventBuffer) {
             Log.d(TAG, "onDataChanged()");
             for (DataEvent dataEvent : dataEventBuffer) {
-                String path = dataEvent.getDataItem().getUri().getPath();
+                DataItem dataItem = dataEvent.getDataItem();
+
+                String path = dataItem.getUri().getPath();
                 Log.d(TAG, "path: " + path);
+
+                if (path.equals("/sunshine")) {
+                    DataMap dataMap = DataMapItem.fromDataItem(dataItem).getDataMap();
+                    mHighTemperature = dataMap.getDouble("high");
+                    Log.d(TAG, "high temperature: " + mHighTemperature);
+                }
             }
         }
 
