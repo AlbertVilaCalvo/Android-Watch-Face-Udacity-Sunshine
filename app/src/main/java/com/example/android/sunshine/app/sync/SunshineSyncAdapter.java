@@ -58,6 +58,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
@@ -107,7 +108,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
 
 
         // WATCH FACE - connect
-        setupWatchFace();
+        connectToWatchFace();
 
 
         String locationQuery = Utility.getPreferredLocation(getContext());
@@ -336,7 +337,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                 // SEND DATA TO WAEAR WATHC FACE
                 // Only send the 1st item
                 if (i == 0) {
-                    sendDataToWatchFace();
+                    sendDataToWatchFace(high);
                 }
 
 
@@ -668,7 +669,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
 
     private GoogleApiClient mGoogleApiClient;
 
-    private void setupWatchFace() {
+    private void connectToWatchFace() {
+        Log.d(LOG_TAG, "connectToWatchFace()");
         mGoogleApiClient = new GoogleApiClient.Builder(getContext())
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(this)
@@ -677,10 +679,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         mGoogleApiClient.connect();
     }
 
-    private void sendDataToWatchFace(){
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sunshine");
+    private void sendDataToWatchFace(double high) {
+        Log.d(LOG_TAG, "sendDataToWatchFace()");
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sunshine").setUrgent();
 
-        putDataMapRequest.getDataMap().putInt("temp", 12);
+        putDataMapRequest.getDataMap().putDouble("high", high);
+        putDataMapRequest.getDataMap().putLong("timestamp", new Date().getTime());
 
         PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest)

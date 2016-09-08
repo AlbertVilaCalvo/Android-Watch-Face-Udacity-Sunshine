@@ -29,11 +29,21 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.Time;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.util.TimeZone;
@@ -46,6 +56,8 @@ import java.util.concurrent.TimeUnit;
 public class SunshineWatchFaceService extends CanvasWatchFaceService {
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
+
+    private final static String TAG = "SunshineWatchFace";
 
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
@@ -83,7 +95,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine
+            implements GoogleApiClient.ConnectionCallbacks,
+            GoogleApiClient.OnConnectionFailedListener,
+            DataApi.DataListener {
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
@@ -146,6 +161,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
+                mGoogleApiClient.connect();
+                Log.d(TAG, "mGoogleApiClient.connect()");
+
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
@@ -153,6 +171,12 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 mTime.setToNow();
             } else {
                 unregisterReceiver();
+
+                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
+                    mGoogleApiClient.disconnect();
+                    Log.d(TAG, "mGoogleApiClient.disconnect()");
+                }
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -268,5 +292,46 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+
+
+        // ADDED BY ALBERT
+
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(SunshineWatchFaceService.this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(Wearable.API)
+                .build();
+
+        // GoogleApiClient.ConnectionCallbacks,
+
+        @Override
+        public void onConnected(@Nullable Bundle bundle) {
+            Log.d(TAG, "GoogleApiClient.ConnectionCallbacks - onConnected");
+            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+            Log.d(TAG, "GoogleApiClient.ConnectionCallbacks - onConnectionSuspended");
+        }
+
+        // GoogleApiClient.OnConnectionFailedListener
+
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+            Log.d(TAG, "GoogleApiClient.ConnectionCallbacks - onConnectionFailed");
+        }
+
+        // DataApi.DataListener
+
+        @Override
+        public void onDataChanged(DataEventBuffer dataEventBuffer) {
+            Log.d(TAG, "onDataChanged()");
+            for (DataEvent dataEvent : dataEventBuffer) {
+                String path = dataEvent.getDataItem().getUri().getPath();
+                Log.d(TAG, "path: " + path);
+            }
+        }
+
     }
 }
