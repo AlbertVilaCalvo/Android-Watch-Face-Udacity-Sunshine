@@ -149,7 +149,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             Resources resources = SunshineWatchFaceService.this.getResources();
             mTimeYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mTemperatureYOffset = resources.getDimension(R.dimen.temperature_y_offset);
-            mIconXOffset = resources.getDimension(R.dimen.icon_x_offset);
             mIconYOffset = resources.getDimension(R.dimen.icon_y_offset);
 
             mBackgroundPaint = new Paint();
@@ -242,6 +241,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             textSize = resources.getDimension(isRound
                     ? R.dimen.temperature_text_size_round : R.dimen.temperature_text_size);
             mTemperatureTextPaint.setTextSize(textSize);
+
+            mIconXOffset = resources.getDimension(isRound
+                    ? R.dimen.icon_x_offset_round : R.dimen.icon_x_offset);
         }
 
         @Override
@@ -398,7 +400,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
             @Override
             protected Bitmap doInBackground(Asset... params) {
-                if (params.length > 0) {
+                if (params.length > 0 && params[0] != null) {
                     Asset asset = params[0];
 
                     InputStream assetInputStream = Wearable.DataApi.getFdForAsset(

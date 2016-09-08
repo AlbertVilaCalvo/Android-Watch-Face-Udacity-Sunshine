@@ -15,6 +15,7 @@
 
     <!-- icon -->
     <dimen name="icon_width_height">48dp</dimen>
-    <dimen name="icon_x_offset">25dp</dimen>
+    <dimen name="icon_x_offset">15dp</dimen>
+    <dimen name="icon_x_offset_round">25dp</dimen>
     <dimen name="icon_y_offset">120dp</dimen>
 </resources>

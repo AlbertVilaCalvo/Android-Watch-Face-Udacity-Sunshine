@@ -693,7 +693,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         int drawableResourceId = Utility.getIconResourceForWeatherCondition(weatherConditionId);
         Bitmap bitmap = BitmapFactory.decodeResource(getContext().getResources(), drawableResourceId);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
         Asset asset = Asset.createFromBytes(byteArrayOutputStream.toByteArray());
         putDataMapRequest.getDataMap().putAsset("icon", asset);
 
