@@ -1,3 +1,14 @@
+**An Android Watch Face that displays the current weather. Project for Android Wear (Go Ubiquitous) course of the Udacity Android Developer Nanodegree.**
+
+<br>
+
+<img src='screenshots/Screenshot_1.png' width='280px' style="margin-right: 40px;">
+<img src='screenshots/Screenshot_2.png' width='280px' style="margin-right: 40px;">
+
+<br>
+
+*What follows is the original README:*
+
 Advanced Android Sample App
 ===================================
 
